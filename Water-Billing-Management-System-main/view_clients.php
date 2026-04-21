@@ -1,4 +1,4 @@
-<?php
+// Module for resident profiling and client data management<?php
 include 'db.php';
 session_start();
 
