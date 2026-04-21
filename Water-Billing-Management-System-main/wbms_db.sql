@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 14, 2024 at 12:10 PM
+-- Generation Time: Apr 21, 2026 at 01:05 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -30,9 +30,11 @@ SET time_zone = "+00:00";
 CREATE TABLE `billing_list` (
   `id` int(30) NOT NULL,
   `client_id` int(30) NOT NULL,
+  `meter_code` varchar(50) NOT NULL,
   `reading_date` date NOT NULL,
   `due_date` date NOT NULL,
   `reading` float(12,2) NOT NULL DEFAULT 0.00,
+  `arrears` double(10,2) DEFAULT 0.00,
   `previous` float(12,2) NOT NULL DEFAULT 0.00,
   `rate` float(12,2) NOT NULL DEFAULT 0.00,
   `total` float(12,2) NOT NULL DEFAULT 0.00,
@@ -45,8 +47,11 @@ CREATE TABLE `billing_list` (
 -- Dumping data for table `billing_list`
 --
 
-INSERT INTO `billing_list` (`id`, `client_id`, `reading_date`, `due_date`, `reading`, `previous`, `rate`, `total`, `status`, `date_created`, `date_updated`) VALUES
-(9, 1, '2024-06-15', '2024-06-22', 100.00, 100.00, 10.75, 1075.00, 0, '2024-06-14 16:09:47', '2024-06-14 16:09:47');
+INSERT INTO `billing_list` (`id`, `client_id`, `meter_code`, `reading_date`, `due_date`, `reading`, `arrears`, `previous`, `rate`, `total`, `status`, `date_created`, `date_updated`) VALUES
+(1, 1, 'MTR-001', '2026-01-01', '2026-02-01', 5.00, 0.00, 0.00, 5.00, 25.00, 1, '2026-04-20 13:11:41', '2026-04-20 13:16:41'),
+(2, 1, 'MTR-001', '2026-02-01', '2026-03-01', 10.00, 0.00, 5.00, 5.00, 25.00, 1, '2026-04-20 13:13:03', '2026-04-20 13:28:31'),
+(3, 1, 'MTR-001', '2026-03-01', '2026-04-01', 20.00, 0.00, 10.00, 5.00, 50.00, 1, '2026-04-20 13:16:04', '2026-04-20 13:30:39'),
+(4, 1, 'MTR-001', '2026-04-01', '2026-05-01', 30.00, 0.00, 20.00, 5.00, 100.00, 1, '2026-04-20 13:30:14', '2026-04-20 13:30:39');
 
 -- --------------------------------------------------------
 
@@ -60,16 +65,17 @@ CREATE TABLE `category_list` (
   `status` tinyint(1) NOT NULL DEFAULT 1,
   `delete_flag` tinyint(1) NOT NULL DEFAULT 0,
   `date_created` datetime NOT NULL DEFAULT current_timestamp(),
-  `date_updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `date_updated` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `rate` float(12,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `category_list`
 --
 
-INSERT INTO `category_list` (`id`, `name`, `status`, `delete_flag`, `date_created`, `date_updated`) VALUES
-(1, 'Residential', 1, 0, '2022-05-02 15:13:02', '2022-05-02 15:13:02'),
-(2, 'Commercial', 1, 0, '2022-05-02 15:13:09', '2022-05-02 15:13:09');
+INSERT INTO `category_list` (`id`, `name`, `status`, `delete_flag`, `date_created`, `date_updated`, `rate`) VALUES
+(1, 'Residential', 1, 0, '2022-05-02 15:13:02', '2026-04-17 14:54:16', 5.00),
+(2, 'Commercial', 1, 0, '2022-05-02 15:13:09', '2026-04-17 14:54:30', 10.00);
 
 -- --------------------------------------------------------
 
@@ -84,9 +90,11 @@ CREATE TABLE `client_list` (
   `firstname` text NOT NULL,
   `middlename` text DEFAULT NULL,
   `lastname` text NOT NULL,
+  `gender` varchar(10) DEFAULT NULL,
+  `birthdate` date DEFAULT NULL,
   `contact` text NOT NULL,
   `address` text NOT NULL,
-  `meter_code` varchar(100) NOT NULL,
+  `purok` varchar(50) DEFAULT NULL,
   `first_reading` float(12,2) NOT NULL,
   `status` tinyint(1) NOT NULL DEFAULT 1,
   `delete_flag` tinyint(1) NOT NULL DEFAULT 0,
@@ -98,8 +106,11 @@ CREATE TABLE `client_list` (
 -- Dumping data for table `client_list`
 --
 
-INSERT INTO `client_list` (`id`, `code`, `category_id`, `firstname`, `middlename`, `lastname`, `contact`, `address`, `meter_code`, `first_reading`, `status`, `delete_flag`, `date_created`, `date_updated`) VALUES
-(1, '202205020001', 1, 'Mark', 'D', 'Cooper', '09123456789', 'Sample Address', '123456', 1001.00, 1, 0, '2022-05-02 15:13:35', '2022-05-02 15:13:35');
+INSERT INTO `client_list` (`id`, `code`, `category_id`, `firstname`, `middlename`, `lastname`, `gender`, `birthdate`, `contact`, `address`, `purok`, `first_reading`, `status`, `delete_flag`, `date_created`, `date_updated`) VALUES
+(1, '202205020001', 1, 'Rashel', 'Baga', 'Dapula', 'Female', '2026-04-20', '12345678901', 'Himos-onan, Saint Bernard, Southern Leyte', 'Purok 1', 0.00, 1, 0, '2026-04-20 13:01:32', '2026-04-20 13:01:32'),
+(2, '202205020002', 2, 'Zenmar ', 'May', 'Anduyan', 'Female', '2026-04-21', '12345678902', 'Himos-onan, Saint Bernard, Southern Leyte', 'Purok 2', 0.00, 1, 0, '2026-04-20 13:03:18', '2026-04-20 13:03:18'),
+(3, '202205020003', 1, 'Mark ', 'John', 'Caayohan ', 'Male', '2026-04-22', '12345678903', 'Himos-onan, Saint Bernard, Southern Leyte', 'Purok 3', 0.00, 1, 0, '2026-04-20 13:03:52', '2026-04-20 13:09:53');
+
 -- --------------------------------------------------------
 
 --
@@ -149,7 +160,9 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `firstname`, `middlename`, `lastname`, `username`, `password`, `avatar`, `last_login`, `type`, `date_added`, `date_updated`) VALUES
-(1, 'Adminstrator', NULL, 'Admin', 'admin', '0192023a7bbd73250516f069df18b500', 'uploads/avatars/1.png?v=1649834664', NULL, 1, '2021-01-20 14:02:37', '2022-04-13 15:24:24'),
+(1, 'Adminstrator', NULL, 'Admin', 'admin', '0192023a7bbd73250516f069df18b500', NULL, NULL, 1, '2026-04-13 21:21:41', '2026-04-13 21:21:41'),
+(2, 'Carmelle', NULL, '', 'secretary', 'ad31b430bcdcd1aeb0dc3a10069e229c', NULL, NULL, 2, '2026-04-15 04:45:05', '2026-04-16 14:50:32'),
+(4, 'Sophie', 'Mondragon', 'Marcos', 'secretary', '4cd4fb021617493c4a77e9dfb5e40b6c', NULL, NULL, 2, '2026-04-20 13:53:51', '2026-04-20 13:53:51');
 
 --
 -- Indexes for dumped tables
@@ -159,26 +172,12 @@ INSERT INTO `users` (`id`, `firstname`, `middlename`, `lastname`, `username`, `p
 -- Indexes for table `billing_list`
 --
 ALTER TABLE `billing_list`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `client_id` (`client_id`);
-
---
--- Indexes for table `category_list`
---
-ALTER TABLE `category_list`
   ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `client_list`
 --
 ALTER TABLE `client_list`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `category_id` (`category_id`);
-
---
--- Indexes for table `system_info`
---
-ALTER TABLE `system_info`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -195,47 +194,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `billing_list`
 --
 ALTER TABLE `billing_list`
-  MODIFY `id` int(30) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
-
---
--- AUTO_INCREMENT for table `category_list`
---
-ALTER TABLE `category_list`
-  MODIFY `id` int(30) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(30) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `client_list`
 --
 ALTER TABLE `client_list`
-  MODIFY `id` int(30) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT for table `system_info`
---
-ALTER TABLE `system_info`
-  MODIFY `id` int(30) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(30) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(50) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `billing_list`
---
-ALTER TABLE `billing_list`
-  ADD CONSTRAINT `client_id_fk_bl` FOREIGN KEY (`client_id`) REFERENCES `client_list` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
-
---
--- Constraints for table `client_list`
---
-ALTER TABLE `client_list`
-  ADD CONSTRAINT `category_id_fk_cl` FOREIGN KEY (`category_id`) REFERENCES `category_list` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+  MODIFY `id` int(50) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
