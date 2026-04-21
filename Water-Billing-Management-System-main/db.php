@@ -1,3 +1,5 @@
+
+// Final database connection for WBMS integration.
 <?php
 $servername = "127.0.0.1";
 $username = "root";
