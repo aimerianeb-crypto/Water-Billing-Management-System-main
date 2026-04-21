@@ -1,9 +1,0 @@
-WATER BILLING
-1. RUN XAMMP(APACHE, MYSQL)
-2.localhost/Water-Billing-Management-System-main/Water-Billing-Management-System-main/index.php
-
-
-RESIDENTS
-1. MAIN JAVA(RUN FILE)
-USERNAME (cc)
-PASSWORD (cc)
