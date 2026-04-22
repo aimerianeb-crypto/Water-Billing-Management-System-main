@@ -1,5 +1,5 @@
-// Core logic for water consumption and billing history tracking
 <?php
+// Core logic for water consumption and billing history tracking
 include 'db.php'; 
 session_start();
 
