@@ -1,36 +1,47 @@
 <?php
-include 'db.php';
 session_start();
 
-// Set timezone para husto ang oras sa Pilipinas
-date_default_timezone_set('Asia/Manila');
+// 1. I-initialize ang variable para mawala ang "Undefined variable" error
+$message = "";
 
-// We use this variable to show the message inside the form panel
-$message = "Please Fill up form!"; 
-$msg_color = "#ff0000"; // Default red
+// Check kon naay error gikan sa URL (e.g., login.php?error=no_token)
+if (isset($_GET['error'])) {
+    if ($_GET['error'] == 'no_token') {
+        $message = "Please login first!";
+    } elseif ($_GET['error'] == 'invalid_credentials') {
+        $message = "Invalid username or password!";
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
-    $password = md5($_POST['password']); // Keeping your MD5 logic
+    $password = $_POST['password'];
 
-    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ? AND password = ?");
-    $stmt->bind_param("ss", $username, $password);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    // Request to Node.js Bridge
+    $url = 'http://localhost:3000/api/login';
+    $data = json_encode(['username' => $username, 'password' => $password]);
 
-   if ($result->num_rows > 0) {
-        $user = $result->fetch_assoc(); // Gikinahanglan ni aron makuha ang data gikan sa database
-        
-        $_SESSION['username'] = $username;
-        $_SESSION['type'] = $user['type']; // KINI ANG KULANG! Mao ni ang mupakita sa button.
-        
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+
+    $response = curl_exec($ch);
+    $result = json_decode($response, true);
+    curl_close($ch);
+
+    if (isset($result['status']) && $result['status'] == 'success') {
+        $_SESSION['user_id'] = $result['user']['id'];
+        $_SESSION['username'] = $result['user']['username'];
+        $_SESSION['token'] = $result['token']; 
+
         header("Location: index.php");
-        exit(); 
+        exit();
     } else {
-        $message = "Invalid credentials";
+        // I-set ang message kon mapakyas ang login
+        $message = "Invalid Credentials!";
     }
-    
-    $stmt->close();
 }
 ?>
 
