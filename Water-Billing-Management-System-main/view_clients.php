@@ -35,6 +35,7 @@ curl_close($ch);
 $clients = ($httpCode == 200) ? json_decode($response, true) : [];
 
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -132,21 +133,21 @@ $clients = ($httpCode == 200) ? json_decode($response, true) : [];
                                 <th class="text-center">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+    <tbody>
     <?php
-    if ($result && $result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
-            // Kuhaon ang middle initial o ang tibuok middle name
+    // Usba gikan sa $result ngadto sa $clients
+    if (!empty($clients)) { 
+        foreach ($clients as $row) {
             $middle = (!empty($row['middlename'])) ? $row['middlename'] : '';
             
             echo "<tr>";
-            echo "<td><span class='badge bg-light text-dark'>{$row['code']}</span></td>";
-            echo "<td>{$row['firstname']} {$middle} {$row['lastname']}</td>"; // Gi-apil na ang middle name diri
-            echo "<td>" . ($row['gender'] ?? 'N/A') . "</td>";
-            echo "<td>" . ($row['birthdate'] ?? 'N/A') . "</td>";
-            echo "<td>" . ($row['purok'] ?? 'N/A') . "</td>";
-            echo "<td>{$row['contact']}</td>";
-            echo "<td>{$row['address']}</td>";
+            echo "<td><span class='badge bg-light text-dark'>" . htmlspecialchars($row['code']) . "</span></td>";
+            echo "<td>" . htmlspecialchars($row['firstname'] . " " . $middle . " " . $row['lastname']) . "</td>";
+            echo "<td>" . htmlspecialchars($row['gender'] ?? 'N/A') . "</td>";
+            echo "<td>" . htmlspecialchars($row['birthdate'] ?? 'N/A') . "</td>";
+            echo "<td>" . htmlspecialchars($row['purok'] ?? 'N/A') . "</td>";
+            echo "<td>" . htmlspecialchars($row['contact'] ?? 'N/A') . "</td>";
+            echo "<td>" . htmlspecialchars($row['address'] ?? 'N/A') . "</td>";
             echo "<td class='text-center'>";
             echo "<a href='view_client.php?id={$row['id']}' class='action-btn btn-view' title='View'><i class='bx bxs-show'></i></a>";
             echo "<a href='edit_client.php?id={$row['id']}' class='action-btn btn-edit' title='Edit'><i class='bx bxs-edit-alt'></i></a>";
@@ -154,6 +155,8 @@ $clients = ($httpCode == 200) ? json_decode($response, true) : [];
             echo "</td>";
             echo "</tr>";
         }
+    } else {
+        echo "<tr><td colspan='8' class='text-center text-muted'>No clients found in the integrated database.</td></tr>";
     }
     ?>
 </tbody>
