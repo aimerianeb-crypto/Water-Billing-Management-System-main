@@ -1,16 +1,38 @@
 <?php
-// Module for resident profiling and client data management
-include 'db.php';
+// Module for resident profiling and client data management - INTEGRATED BRIDGE VERSION
 session_start();
 
+// Check if user is logged in
 if (!isset($_SESSION['username'])) {
     header("Location: login.php");
     exit();
 }
 
-// Gi-select nato tanan gikan sa client_list
-$sql = "SELECT * FROM client_list WHERE delete_flag = 0"; // I-filter nato ang wala na-delete
-$result = $conn->query($sql);
+// 1. KUHAON ANG TOKEN GIKAN SA SESSION
+$token = $_SESSION['token'] ?? ''; 
+
+if (empty($token)) {
+    // Kung walay token, pabalikon sa login
+    header("Location: login.php?error=no_token");
+    exit();
+}
+
+// 2. TAWGON ANG NODE.JS BRIDGE API PARA SA MGA CLIENTS
+$url = 'http://localhost:3000/api/clients'; // Ang imong Bridge URL
+$ch = curl_init($url);
+
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Authorization: Bearer ' . $token, // I-pasa ang gate pass
+    'Content-Type: application/json'
+]);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+// I-convert ang JSON response gikan sa Node.js ngadto sa PHP array
+$clients = ($httpCode == 200) ? json_decode($response, true) : [];
 
 ?>
 <!DOCTYPE html>
