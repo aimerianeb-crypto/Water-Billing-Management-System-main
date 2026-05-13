@@ -1,46 +1,71 @@
 <?php
-include 'db.php'; // Include your database connection file
+session_start();
 
-$message = ''; // Initialize message variable
-
-// Fetch all active categories from the database
-$category_sql = "SELECT id, name FROM category_list WHERE status = 1 AND delete_flag = 0";
-$category_result = $conn->query($category_sql);
-
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $code = $_POST['code'];
-    $category_id = $_POST['category_id'];
-    $firstname = $_POST['firstname'];
-    $middlename = $_POST['middlename'];
-    $lastname = $_POST['lastname'];
-    $gender = $_POST['gender']; // Nadugang
-    $birthdate = $_POST['birthdate']; // Nadugang
-    $contact = $_POST['contact'];
-    $address = $_POST['address'];
-    $purok = $_POST['purok']; // Nadugang
-    $status = 1;
-    $delete_flag = 0;
-
-    // Prepare SQL statement - Gi-update ang INSERT para maapil ang bag-ong columns
-    $stmt = $conn->prepare("INSERT INTO client_list (code, category_id, firstname, middlename, lastname, gender, birthdate, contact, address, purok, status, delete_flag) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    
-    // Ang "sisssssssssii" nagrepresentar sa tipo sa data (s=string, i=int)
-    $stmt->bind_param("sisssssssssi", $code, $category_id, $firstname, $middlename, $lastname, $gender, $birthdate, $contact, $address, $purok, $status, $delete_flag);
-
-    if ($stmt->execute()) {
-        $message = "New client added successfully";
-        $messageClass = "success-message";
-    } else {
-        $message = "Error: " . $stmt->error;
-        $messageClass = "error-message";
-    }
-
-    $stmt->close();
+// 1. SECURITY CHECK: Kinahanglan naay token gikan sa login
+$token = $_SESSION['token'] ?? ''; 
+if (empty($token)) {
+    header("Location: login.php");
+    exit();
 }
 
-// Close database connection
-$conn->close();
+$message = ''; 
+$messageClass = '';
+
+/**
+ * 2. KUHAON ANG CATEGORIES GIKAN SA BRIDGE
+ * (Imbes nga SELECT * FROM category_list)
+ */
+$cat_url = 'http://localhost:3000/api/categories'; // Siguraduha nga naa ni sa imong Node.js routes
+$ch_cat = curl_init($cat_url);
+curl_setopt($ch_cat, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch_cat, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $token]);
+$cat_res = curl_exec($ch_cat);
+$categories = json_decode($cat_res, true) ?? [];
+curl_close($ch_cat);
+
+/**
+ * 3. HANDLE FORM SUBMISSION
+ */
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // I-prepare ang data para i-send sa Node.js
+    $postData = [
+        "code" => $_POST['code'],
+        "category_id" => $_POST['category_id'],
+        "firstname" => $_POST['firstname'],
+        "middlename" => $_POST['middlename'],
+        "lastname" => $_POST['lastname'],
+        "gender" => $_POST['gender'],
+        "birthdate" => $_POST['birthdate'],
+        "contact" => $_POST['contact'],
+        "address" => $_POST['address'],
+        "purok" => $_POST['purok']
+    ];
+
+    $url = 'http://localhost:3000/api/clients/add';
+    $ch = curl_init($url);
+    
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $resData = json_decode($response, true);
+    curl_close($ch);
+
+    if ($httpCode == 200 || $httpCode == 201) {
+        $message = "New client added successfully via Bridge!";
+        $messageClass = "success-message";
+    } else {
+        $message = "Error: " . ($resData['message'] ?? "Failed to connect to Bridge.");
+        $messageClass = "error-message";
+    }
+}
+
 ?>
 
 <!DOCTYPE html>
