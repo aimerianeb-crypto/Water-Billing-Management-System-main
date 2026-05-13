@@ -1,29 +1,46 @@
 <?php
-include 'db.php'; // Include your database connection file
+// Module for deleting clients via Bridge - HARD DELETE INTEGRATION
+session_start();
+
+// 1. SECURITY CHECK
+$token = $_SESSION['token'] ?? ''; 
+if (empty($token)) {
+    header("Location: login.php");
+    exit();
+}
 
 $message = '';
-$messageClass = '';
+$status = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['id'])) {
     $client_id = $_GET['id'];
 
-    // Delete client record from the database
-    $stmt = $conn->prepare("DELETE FROM client_list WHERE id = ?");
-    $stmt->bind_param("i", $client_id);
+    // 2. TAWGON ANG BRIDGE PARA SA DELETE (DELETE Method)
+    $url = 'http://localhost:3000/api/clients/' . $client_id; 
+    $ch = curl_init($url);
 
-    if ($stmt->execute()) {
-        $message = "Client deleted successfully.";
-        $messageClass = "success-message";
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE"); // Importante: DELETE method ang gamiton
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $token,
+        'Content-Type: application/json'
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    // 3. CHECK KUNG NAGMALAMPUSON BA
+    if ($httpCode == 200) {
+        $message = "Client permanently deleted from integrated database!";
+        $status = "success";
     } else {
-        $message = "Error deleting client: " . $stmt->error;
-        $messageClass = "error-message";
+        $message = "Error deleting client via Bridge. Code: " . $httpCode;
+        $status = "error";
     }
-
-    $stmt->close();
-    $conn->close();
 } else {
     $message = "Invalid request.";
-    $messageClass = "error-message";
+    $status = "error";
 }
 ?>
 
