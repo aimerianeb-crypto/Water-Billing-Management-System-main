@@ -1,31 +1,36 @@
 <?php
-header('Content-Type: application/json');
-include 'db.php'; 
+session_start();
+header
+('Content-Type: application/json');
 
 $username = $_POST['username'] ?? '';
 $password = $_POST['password'] ?? '';
 
-// Importante: I-MD5 ang password para mo-match sa wbms_db
-$hashed_password = md5($password); 
+if (empty($username) || empty($password)) {
+    echo json_encode(["status" => "error", "message" => "Provide username and password."]);
+    exit;
+}
 
-$sql = "SELECT * FROM users WHERE username = ? AND password = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("ss", $username, $hashed_password);
-$stmt->execute();
-$result = $stmt->get_result();
+// I-prepare ang data para sa Node.js Bridge
+$data = ["username" => $username, "password" => $password];
+$payload = json_encode($data);
 
-if ($result->num_rows > 0) {
-    $user = $result->fetch_assoc();
-    echo json_encode([
-        "status" => "success",
-        "user_id" => $user['id'], 
-        "role" => $user['type'] ?? '1', // 'type' ang column sa wbms_db
-        "username" => $user['username']
-    ]);
+$ch = curl_init('http://localhost:3000/api/login');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+
+$result = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$res = json_decode($result, true);
+curl_close($ch);
+
+if ($httpCode == 200 && isset($res['token'])) {
+    // KINI ANG IMPORTANTE: Gi-save ang token para sa view/add clients
+    $_SESSION['token'] = $res['token']; 
+    echo $result; 
 } else {
-    echo json_encode([
-        "status" => "error",
-        "message" => "Invalid Username or Password!"
-    ]);
+    echo json_encode(["status" => "error", "message" => $res['message'] ?? "Login failed."]);
 }
 ?>
