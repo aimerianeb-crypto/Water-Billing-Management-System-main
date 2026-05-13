@@ -1,21 +1,43 @@
 <?php
-include 'db.php'; // Include your database connection file
+// Module for editing client details via Bridge integration
+session_start();
 
-// Check if client_id is provided via GET request
-if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['id'])) {
-    $client_id = $_GET['id'];
+// 1. SECURITY CHECK
+$token = $_SESSION['token'] ?? ''; 
+if (empty($token)) {
+    header("Location: login.php");
+    exit();
+}
 
-    // Fetch client information based on the client_id
-    $stmt = $conn->prepare("SELECT * FROM client_list WHERE id = ?");
-    $stmt->bind_param("i", $client_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
+// Check if client_id is provided
+$client_id = $_GET['id'] ?? '';
 
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
+if (empty($client_id)) {
+    echo "Invalid request.";
+    exit();
+}
 
-        // Display client details in an edit form
-        ?>
+// 2. FETCH CURRENT DATA VIA BRIDGE (GET Request)
+$url = 'http://localhost:3000/api/clients/' . $client_id; 
+$ch = curl_init($url);
+
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Authorization: Bearer ' . $token,
+    'Content-Type: application/json'
+]);
+
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+$row = ($httpCode == 200) ? json_decode($response, true) : null;
+
+if (!$row) {
+    echo "Client not found or API Error.";
+    exit();
+}
+?>
         <!DOCTYPE html>
         <html lang="en">
         <head>
