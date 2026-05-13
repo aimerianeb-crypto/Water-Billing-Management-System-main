@@ -149,16 +149,7 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// 2. GET ALL CLIENTS
-app.get('/api/clients', verifyToken, (req, res) => {
-    const sql = "CALL sp_GetAllClients()";
-    db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(results[0]); 
-    });
-});
-
-// 3. ADD NEW CLIENT
+// 3. [CREATE] NEW CLIENT
 app.post('/api/clients/add', verifyToken, (req, res) => {
     const { 
         code, category_id, firstname, middlename, lastname, 
@@ -171,6 +162,40 @@ app.post('/api/clients/add', verifyToken, (req, res) => {
     db.query(sql, params, (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.status(201).json({ status: "success", message: "Client added successfully via Bridge!" });
+    });
+});
+
+// 2. [READ] GET ALL CLIENTS
+app.get('/api/clients', verifyToken, (req, res) => {
+    const sql = "CALL sp_GetAllClients()";
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(results[0]); 
+    });
+});
+
+// [UPDATE] - Update client via Procedure
+app.put('/api/clients/:id', verifyToken, (req, res) => {
+    const id = req.params.id;
+    const { firstname, middlename, lastname, contact, address } = req.body;
+    
+    const sql = "CALL sp_UpdateClient(?, ?, ?, ?, ?, ?)";
+    db.query(sql, [id, firstname, middlename, lastname, contact, address], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "Client updated via Bridge!" });
+    });
+});
+
+// [DELETE] - Hard delete client via Bridge
+app.delete('/api/clients/:id', verifyToken, (req, res) => {
+    const id = req.params.id;
+    
+    // Tawgon ang procedure nga naay DELETE logic
+    const sql = "CALL sp_DeleteClient(?)";
+    
+    db.query(sql, [id], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: "Client permanently deleted from integrated database!" });
     });
 });
 
