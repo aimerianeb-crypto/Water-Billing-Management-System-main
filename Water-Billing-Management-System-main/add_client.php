@@ -13,31 +13,30 @@ $messageClass = '';
 
 /**
  * 2. KUHAON ANG CATEGORIES GIKAN SA BRIDGE
- * (Imbes nga SELECT * FROM category_list)
  */
-$cat_url = 'http://localhost:3000/api/categories'; // Siguraduha nga naa ni sa imong Node.js routes
-$ch_cat = curl_init($cat_url);
-curl_setopt($ch_cat, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch_cat, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $token]);
-$cat_res = curl_exec($ch_cat);
+$cat_url = 'http://localhost:3000/api/categories'; 
+$cat_ch = curl_init($cat_url);
+curl_setopt($cat_ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($cat_ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $token]);
+
+$cat_res = curl_exec($cat_ch);
 $categories = json_decode($cat_res, true) ?? [];
-curl_close($ch_cat);
+curl_close($cat_ch);
 
 /**
  * 3. HANDLE FORM SUBMISSION
  */
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // I-prepare ang data para i-send sa Node.js
     $postData = [
         "code" => $_POST['code'],
-        "category_id" => $_POST['category_id'],
+        "category_id" => (int)$_POST['category_id'], // Gi-ensure nato nga number ni
         "firstname" => $_POST['firstname'],
         "middlename" => $_POST['middlename'],
         "lastname" => $_POST['lastname'],
         "gender" => $_POST['gender'],
         "birthdate" => $_POST['birthdate'],
         "contact" => $_POST['contact'],
-        "address" => $_POST['address'],
+        "address" => "Himos-onan, Saint Bernard, Southern Leyte", // I-hardcode nalang nato para sigurado
         "purok" => $_POST['purok']
     ];
 
@@ -54,18 +53,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $resData = json_decode($response, true);
+    $curlError = curl_error($ch); // Mao ni ang tig-bantay kon nganong "Failed"
     curl_close($ch);
 
-    if ($httpCode == 200 || $httpCode == 201) {
-        $message = "New client added successfully via Bridge!";
+    if ($curlError) {
+        $message = "Connection Error: " . $curlError; // Makita nimo kon wala ba ka-connect sa Port 3000
+        $messageClass = "error-message";
+    } elseif ($httpCode == 200 || $httpCode == 201) {
+        $message = "Success! Client added via Bridge.";
         $messageClass = "success-message";
     } else {
-        $message = "Error: " . ($resData['message'] ?? "Failed to connect to Bridge.");
+        $resData = json_decode($response, true);
+        $message = "Bridge Error: " . ($resData['message'] ?? "Check Node.js Terminal");
         $messageClass = "error-message";
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -74,38 +76,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="logo.png">
-    <title>Add Client</title>
+    <title>Add Client | Water Billing</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f0f0f0; margin: 0; padding: 0; }
-        .container { width: 60%; margin: 50px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .container { width: 60%; margin: 50px auto; padding: 30px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
         form { max-width: 600px; margin: 0 auto; }
-        form label { display: block; margin-bottom: 8px; font-weight: bold; }
+        form label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
         form input[type="text"], form input[type="date"], form select { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        form input[type="submit"] { background-color: #256391; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
-        form input[type="submit"]:hover { background-color: #007770; }
-        .message { padding: 10px; margin-top: 20px; border-radius: 4px; font-weight: bold; text-align: center; }
+        form input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
+        form input[type="submit"] { background-color: #256391; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        form input[type="submit"]:hover { background-color: #1a4566; }
+        .message { padding: 15px; margin-top: 20px; border-radius: 4px; font-weight: bold; text-align: center; }
         .success-message { background-color: #4CAF50; color: white; }
         .error-message { background-color: #f44336; color: white; }
-        .back-link { display: inline-block; margin-top: 20px; padding: 10px 15px; background-color: #256391; color: white; text-decoration: none; border-radius: 4px; }
+        .back-link { display: inline-block; margin-top: 20px; padding: 10px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; transition: 0.3s; }
+        .back-link:hover { background-color: #5a6268; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2 style="text-align: center;">Add New Client</h2>
-        <form method="post" action="">
-            <label for="category_id">Category:</label>
-            <select id="category_id" name="category_id" required>
-                <?php
-                if ($category_result->num_rows > 0) {
-                    while ($row = $category_result->fetch_assoc()) {
-                        echo "<option value='{$row['id']}'>{$row['name']}</option>";
-                    }
-                }
-                ?>
-            </select>
+        <h2 style="text-align: center; color: #256391;">Add New Client</h2>
+        
+        <?php if (!empty($message)): ?>
+            <div class="message <?php echo $messageClass; ?>">
+                <?php echo $message; ?>
+            </div>
+        <?php endif; ?>
 
-            <label for="code">Code:</label>
-            <input type="text" id="code" name="code" required>
+        <form method="post" action="">
+           <label for="category_id">Category:</label>
+<select id="category_id" name="category_id" required>
+    <option value="">-- Select Category --</option>
+    <?php foreach ($categories as $cat): ?>
+        <option value="<?php echo $cat['id']; ?>">
+            <?php echo htmlspecialchars($cat['name']); ?> 
+        </option>
+    <?php endforeach; ?>
+</select>
+
+            <label for="code">Client Code:</label>
+            <input type="text" id="code" name="code" required placeholder="e.g. 2024-001">
 
             <label for="firstname">Firstname:</label>
             <input type="text" id="firstname" name="firstname" required>
@@ -126,26 +136,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <label for="birthdate">Birthdate:</label>
             <input type="date" id="birthdate" name="birthdate" required>
 
-            <label for="contact">Contact:</label>
+            <label for="contact">Contact Number:</label>
             <input type="text" id="contact" name="contact" required>
 
-            <div class="form-group">
-    <label>Address :</label>
-    <input type="text" name="address" value="Himos-onan, Saint Bernard, Southern Leyte" class="form-control" readonly>
-</div>
+            <label>Address (Default):</label>
+            <input type="text" name="address" value="Himos-onan, Saint Bernard, Southern Leyte" readonly>
 
             <label for="purok">Purok:</label>
             <input type="text" id="purok" name="purok" required placeholder="e.g. Purok 1">
 
-            <input type="submit" value="Add Client">
+            <input type="submit" value="Add Client to System">
         </form>
 
-        <?php if (!empty($message)): ?>
-            <div class="message <?php echo $messageClass; ?>">
-                <?php echo $message; ?>
-            </div>
-        <?php endif; ?>
-        <a href="view_clients.php" class="back-link">Back to Client List</a>
+        <a href="view_clients.php" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Client List
+        </a>
     </div>
 </body>
 </html>
